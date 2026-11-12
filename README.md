@@ -264,3 +264,7 @@ All open problems are GitHub issues with the
 5. Hardware-in-the-loop on a low-power board (Jetson Orin Nano or Raspberry Pi 5 + NPU) against the laptop sim.
 6. Publish the operating envelope: max speed and scenarios per device at reference behaviour.
 7. Later: occlusion-aware pedestrians, oncoming-traffic gap check, randomised scenarios.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
