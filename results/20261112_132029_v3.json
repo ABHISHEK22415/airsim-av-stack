@@ -1,0 +1,50 @@
+{
+ "tag": "v3",
+ "time_s": 363,
+ "dist_m": 1035,
+ "speed": 13.9,
+ "collisions": [
+  "DeerBothBP2_19",
+  "obstacle_0"
+ ],
+ "red_violations": 0,
+ "swerves": 35,
+ "recoveries": 1,
+ "xte_mean": 0.135,
+ "xte_p95": 0.606,
+ "wrong_m": 208.1,
+ "linger_m": 63.0,
+ "excursions": [
+  {
+   "len_m": 41.0,
+   "dur_s": 40.0,
+   "linger_m": 9.0,
+   "at_s": 12
+  },
+  {
+   "len_m": 56.0,
+   "dur_s": 12.3,
+   "linger_m": 18.0,
+   "at_s": 144
+  },
+  {
+   "len_m": 31.0,
+   "dur_s": 4.5,
+   "linger_m": 18.0,
+   "at_s": 420
+  },
+  {
+   "len_m": 38.0,
+   "dur_s": 6.8,
+   "linger_m": 18.0,
+   "at_s": 671
+  },
+  {
+   "len_m": 40.1,
+   "dur_s": 21.8,
+   "linger_m": 0.0,
+   "at_s": 995,
+   "unfinished": true
+  }
+ ]
+}

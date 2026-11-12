@@ -1,0 +1,49 @@
+{
+ "tag": "v3",
+ "time_s": 303,
+ "dist_m": 1035,
+ "speed": 13.9,
+ "collisions": [
+  "obstacle_3"
+ ],
+ "red_violations": 0,
+ "swerves": 26,
+ "recoveries": 0,
+ "xte_mean": 0.135,
+ "xte_p95": 0.614,
+ "wrong_m": 221.6,
+ "linger_m": 64.0,
+ "excursions": [
+  {
+   "len_m": 59.0,
+   "dur_s": 13.4,
+   "linger_m": 18.0,
+   "at_s": 3
+  },
+  {
+   "len_m": 48.0,
+   "dur_s": 9.4,
+   "linger_m": 19.0,
+   "at_s": 150
+  },
+  {
+   "len_m": 28.0,
+   "dur_s": 6.7,
+   "linger_m": 7.0,
+   "at_s": 412
+  },
+  {
+   "len_m": 44.0,
+   "dur_s": 7.4,
+   "linger_m": 19.0,
+   "at_s": 663
+  },
+  {
+   "len_m": 41.1,
+   "dur_s": 22.1,
+   "linger_m": 1.0,
+   "at_s": 994,
+   "unfinished": true
+  }
+ ]
+}

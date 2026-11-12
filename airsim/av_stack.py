@@ -52,7 +52,7 @@ def smooth5(x):
     return x * x * x * (10 - 15 * x + 6 * x * x)
 
 
-def lidar_obstacles(c, car_xy):
+def lidar_obstacles(c, car_xy, yaw=None):
     d = c.getLidarData("Lidar1")
     if len(d.point_cloud) < 30:
         return np.zeros((0, 2))
@@ -61,7 +61,13 @@ def lidar_obstacles(c, car_xy):
     h = ground - p[:, 2]
     m = (h > 0.3) & (h < 2.4)
     xy = p[m, :2].astype(np.float64)
-    xy = xy[np.hypot(xy[:, 0] - car_xy[0], xy[:, 1] - car_xy[1]) > 2.6]   # drop own body
+    if yaw is None:
+        xy = xy[np.hypot(xy[:, 0] - car_xy[0], xy[:, 1] - car_xy[1]) > 2.6]   # drop own body (old: circle)
+    else:   # drop own body only: box 2.6 m long x 1.15 m half-width (keeps obstacles right beside the car)
+        rel = xy - car_xy
+        lon = rel[:, 0] * math.cos(yaw) + rel[:, 1] * math.sin(yaw)
+        lat = -rel[:, 0] * math.sin(yaw) + rel[:, 1] * math.cos(yaw)
+        xy = xy[(np.abs(lon) > 2.6) | (np.abs(lat) > 1.15)]
     if len(xy):                                  # 0.3 m voxel downsample
         _, idx = np.unique(np.round(xy / 0.3).astype(np.int32), axis=0, return_index=True)
         xy = xy[idx]
@@ -186,6 +192,8 @@ def main():
     ap.add_argument("--laps", type=int, default=1)
     ap.add_argument("--speed", type=float, default=8.5)
     ap.add_argument("--no-dashboard", action="store_true")
+    ap.add_argument("--planner", default="v3", choices=["v2", "v3"], help="lattice cost function")
+    ap.add_argument("--tag", default="run", help="label for logs/runs/*.json")
     ap.add_argument("--stream-file", default="", help="also write each dashboard frame as JPEG here")
     args = ap.parse_args()
 
@@ -243,7 +251,10 @@ def main():
     obs = np.zeros((0, 2))
     t0 = last = time.time()
     k = 0
-    stats = dict(recoveries=0, collisions=set(), red_violations=0, cam_tl=0, cam_tl_ok=0, fallback=0, xte=[], swerves=0, ped_stops=0)
+    stats = dict(recoveries=0, collisions=set(), red_violations=0, cam_tl=0, cam_tl_ok=0, fallback=0, xte=[], swerves=0, ped_stops=0,
+                 wrong_m=0.0, linger_m=0.0, excursions=[])   # oncoming-lane metrics
+    exc, s_prev = None, None
+    mem, obs_plan = [], np.zeros((0, 2))   # current oncoming-lane excursion: dict(s0, t0, linger)
     last_col, crossed = None, set()
     try:
         while True:
@@ -256,7 +267,19 @@ def main():
             yaw = airsim.to_eularian_angles(kin.orientation)[2]
             v = cs.speed
             if k % 2 == 0:
-                obs = lidar_obstacles(c, (x, y))
+                if args.planner == "v2":
+                    obs = lidar_obstacles(c, (x, y))
+                else:
+                    obs = lidar_obstacles(c, (x, y), yaw)
+                    # 2. memory: static points that left the front-180 deg LiDAR FOV (beside/behind the car) are
+                    #    kept for 4 s so the car does not cut back in while still alongside an obstacle
+                    hv = np.array([math.cos(yaw), math.sin(yaw)])
+                    mem = [(t_, p_) for t_, p_ in mem if now - t_ < 4.0]
+                    if len(obs):
+                        mem.append((now, obs[(obs - (x, y)) @ hv < 3.0]))
+                    old = [p_[((p_ - (x, y)) @ hv < 0.5) & (np.hypot(*(p_ - (x, y)).T) < 12)] for t_, p_ in mem[:-1]]
+                    old = [o_ for o_ in old if len(o_)]
+                    obs_plan = np.vstack([obs] + old) if old else obs
                 movers = tracker.update(obs, now, (x, y))
             while not q.empty():
                 percep = q.get_nowait()
@@ -274,7 +297,8 @@ def main():
             ss = np.arange(0.0, HORIZON, 1.0)
             ii = np.clip(np.searchsorted(S, s_cur + ss), 0, len(P) - 1)
             Lt = max(10.0, 1.6 * v + 6)
-            near = obs[np.hypot(obs[:, 0] - x, obs[:, 1] - y) < HORIZON + 8] if len(obs) else obs
+            ob_ = obs if args.planner == "v2" else obs_plan
+            near = ob_[np.hypot(ob_[:, 0] - x, ob_[:, 1] - y) < HORIZON + 8] if len(ob_) else ob_
             # motion prediction: moving tracks are swept 3 s ahead (constant velocity) and added as obstacles
             pred_pts = [tr["c"] + tr["v"] * tp for tr in movers for tp in np.arange(0.3, 3.01, 0.3)]
             if pred_pts:
@@ -309,11 +333,25 @@ def main():
                     pts = P[ii] + NR[ii] * lat[:, None]
                     s_col = None
                     if len(near):
-                        dmin = np.sqrt(((pts[:, None, :] - near[None, :, :]) ** 2).sum(-1)).min(1)
+                        if args.planner == "v2":
+                            chk = pts
+                        else:   # body positions: lateral at s+-k m applied at s (rear/front of the car)
+                            jj = np.arange(len(lat))
+                            lat_b = np.concatenate([np.full(3, d_plan), lat])   # 3 m behind the car = current offset
+                            chk = np.stack([P[ii] + NR[ii] * lat_b[np.clip(jj + 3 + k_, 0, len(lat_b) - 1)][:, None]
+                                            for k_ in (-2, 0, 2)], 1)          # (H, 3, 2)
+                            chk = chk.reshape(-1, 2)
+                        dmin = np.sqrt(((chk[:, None, :] - near[None, :, :]) ** 2).sum(-1)).min(1)
+                        if args.planner != "v2":
+                            dmin = dmin.reshape(len(lat), -1).min(1)
                         hit = np.nonzero(dmin < clear)[0]
                         if len(hit):
                             s_col = float(ss[hit[0]])
-                    cost = 0.35 * abs(off) + 1.2 * abs(off - man["off"]) + (3.0 if off <= -3 else 0.0) + (2.0 if off <= -4 else 0.0)
+                    if args.planner == "v2":   # old: change penalty > lane penalty -> stays in the oncoming lane
+                        cost = 0.35 * abs(off) + 1.2 * abs(off - man["off"]) + (3.0 if off <= -3 else 0.0) + (2.0 if off <= -4 else 0.0)
+                    else:   # v3: own lane dominates, so the car returns as soon as its lane is clear
+                        cost = 1.5 * abs(off) + 0.4 * abs(off - man["off"]) + (2.5 if off < -1.0 else 0.0) \
+                            + (2.0 if off <= -3 else 0.0)
                     if s_col is not None:
                         cost += 100 + 6 * (HORIZON - s_col)
                     out.append((cost, off, pts, s_col))
@@ -336,6 +374,22 @@ def main():
             _, off, cpts, s_col = best
             prev_off = off
             stats["xte"][-1] = abs(d0 - d_plan)
+
+            # ---- oncoming-lane metrics: body over the centre line (lane centre -1.9 m, half width 0.95 m)
+            ds_ = 0.0 if s_prev is None else max(0.0, s_cur - s_prev)
+            s_prev = s_cur
+            home_free = any(c_[1] == 0.0 and c_[3] is None for c_ in cands)   # own lane clear over the horizon
+            if d0 < -0.95:
+                if exc is None:
+                    exc = dict(s0=s_cur, t0=now, linger=0.0)
+                stats["wrong_m"] += ds_
+                if home_free:
+                    exc["linger"] += ds_
+                    stats["linger_m"] += ds_
+            elif exc is not None:
+                stats["excursions"].append(dict(len_m=round(s_cur - exc["s0"], 1), dur_s=round(now - exc["t0"], 1),
+                                                linger_m=round(exc["linger"], 1), at_s=round(exc["s0"])))
+                exc = None
 
             # ---- behaviour: speed limits
             vt = args.speed
@@ -514,6 +568,24 @@ def main():
                   f"{100*stats['cam_tl_ok']/max(1,stats['cam_tl']):.0f}%), fallback {100*stats['fallback']/tot:.0f}%")
         print(f"lattice swerves into left lane: {stats['swerves']}, deadlock recoveries: {stats['recoveries']}")
         print(f"lateral tracking error vs chosen offset: mean {xte.mean():.2f} m, 95% {np.percentile(xte,95):.2f} m")
+        if exc is not None:
+            stats["excursions"].append(dict(len_m=round(S[min(idx, len(S)-1)] - exc["s0"], 1), dur_s=round(time.time() - exc["t0"], 1),
+                                            linger_m=round(exc["linger"], 1), at_s=round(exc["s0"]), unfinished=True))
+        dist = float(S[min(idx, len(S)-1)])
+        exs = stats["excursions"]
+        print(f"oncoming lane: {stats['wrong_m']:.0f} m ({100*stats['wrong_m']/max(dist,1):.1f}% of distance), "
+              f"{len(exs)} excursions, max {max([e['len_m'] for e in exs], default=0):.0f} m, "
+              f"lingering after clear {stats['linger_m']:.0f} m")
+        import json
+        rd = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs", "runs")
+        os.makedirs(rd, exist_ok=True)
+        summ = dict(tag=args.tag, time_s=round(time.time() - t0), dist_m=round(dist), speed=args.speed,
+                    collisions=sorted(stats["collisions"]), red_violations=stats["red_violations"],
+                    swerves=stats["swerves"], recoveries=stats["recoveries"], xte_mean=round(float(xte.mean()), 3),
+                    xte_p95=round(float(np.percentile(xte, 95)), 3), wrong_m=round(stats["wrong_m"], 1),
+                    linger_m=round(stats["linger_m"], 1), excursions=exs)
+        with open(os.path.join(rd, time.strftime("%Y%m%d_%H%M%S") + f"_{args.tag}.json"), "w") as f_:
+            json.dump(summ, f_, indent=1)
 
 
 if __name__ == "__main__":
