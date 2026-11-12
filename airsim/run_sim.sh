@@ -1,5 +1,5 @@
 #!/bin/bash
-# Start the AirSim "AirSimNH" neighbourhood fullscreen on the NVIDIA GPU (HDMI TV).
+# Start the AirSim "AirSimNH" neighbourhood (1080p windowed) on the NVIDIA GPU.
 DIR="$(cd "$(dirname "$0")" && pwd)"
 export XDG_RUNTIME_DIR=/run/user/1000 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
 export DISPLAY=:0 XAUTHORITY=$(ls /run/user/1000/.mutter-Xwaylandauth.* | head -1)
