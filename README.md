@@ -190,6 +190,26 @@ Drones: `SIM_SETTINGS=settings_drones.json ./run_sim.sh &` then `.venv/bin/pytho
   `walker_/crosser_/obstacle_` objects before every lap.
 - Performance on a GTX 1050 Ti: 1080p windowed + `scalability 2` ≈ 31 FPS; 4K fullscreen is unusable.
 
+### Known issues (tracked for later)
+
+All open problems are filed as GitHub issues with the
+[`known-issue`](../../issues?q=is%3Aissue+label%3Aknown-issue) label:
+
+| # | Issue | Area |
+|---|---|---|
+| [#1](../../issues/1) | Validate planner v3b (lane return fixes): not yet measured | planning, safety |
+| [#2](../../issues/2) | Wrong-lane driving still ~18–25 m per swerve | planning |
+| [#3](../../issues/3) | No oncoming-traffic check before using the opposite lane | planning, safety |
+| [#4](../../issues/4) | Collisions with the map's wandering deer | perception, safety |
+| [#5](../../issues/5) | Occlusion-aware pedestrian handling | planning, perception, safety |
+| [#6](../../issues/6) | Camera traffic-light classifier 79–91 % agreement | perception |
+| [#7](../../issues/7) | YOLOv8n runs on CPU: low perception rate | perception |
+| [#8](../../issues/8) | `scenario.py` cleanup crash leaves objects in the map | tooling, simulation |
+| [#9](../../issues/9) | Evaluation too small: single fixed scenario, few laps | tooling |
+| [#10](../../issues/10) | AirSim quirks (cameras, FOV, SIGTERM) | simulation |
+| [#11](../../issues/11) | Performance limits on GTX 1050 Ti | simulation, tooling |
+| [#12](../../issues/12) | `stream_server.py` has no authentication | tooling |
+
 ## 9. Roadmap
 
 - Measure v3b and tune until the targets above are met
