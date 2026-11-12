@@ -1,0 +1,151 @@
+{
+  "SettingsVersion": 1.2,
+  "SimMode": "Car",
+  "ClockSpeed": 1,
+  "ViewMode": "SpringArmChase",
+  "Vehicles": {
+    "Car1": {
+      "VehicleType": "PhysXCar",
+      "AutoCreate": true,
+      "X": 0,
+      "Y": 0,
+      "Z": 0,
+      "Sensors": {
+        "Lidar1": {
+          "SensorType": 6,
+          "Enabled": true,
+          "NumberOfChannels": 16,
+          "Range": 60,
+          "PointsPerSecond": 60000,
+          "RotationsPerSecond": 10,
+          "X": 0,
+          "Y": 0,
+          "Z": -1.9,
+          "VerticalFOVUpper": 2,
+          "VerticalFOVLower": -20,
+          "HorizontalFOVStart": -90,
+          "HorizontalFOVEnd": 90,
+          "DrawDebugPoints": true,
+          "DataFrame": "VehicleInertialFrame"
+        }
+      },
+      "Cameras": {
+        "cam_front_narrow": {
+          "CaptureSettings": [
+            {
+              "ImageType": 0,
+              "Width": 640,
+              "Height": 360,
+              "FOV_Degrees": 50
+            }
+          ],
+          "X": 1.0,
+          "Y": 0.0,
+          "Z": -1.45,
+          "Roll": 0,
+          "Pitch": 0,
+          "Yaw": 0
+        },
+        "cam_front_wide": {
+          "CaptureSettings": [
+            {
+              "ImageType": 0,
+              "Width": 640,
+              "Height": 360,
+              "FOV_Degrees": 120
+            }
+          ],
+          "X": 1.0,
+          "Y": 0.0,
+          "Z": -1.4,
+          "Roll": 0,
+          "Pitch": -3,
+          "Yaw": 0
+        },
+        "cam_left": {
+          "CaptureSettings": [
+            {
+              "ImageType": 0,
+              "Width": 640,
+              "Height": 360,
+              "FOV_Degrees": 100
+            }
+          ],
+          "X": 0.0,
+          "Y": -0.95,
+          "Z": -1.3,
+          "Roll": 0,
+          "Pitch": -5,
+          "Yaw": -90
+        },
+        "cam_right": {
+          "CaptureSettings": [
+            {
+              "ImageType": 0,
+              "Width": 640,
+              "Height": 360,
+              "FOV_Degrees": 100
+            }
+          ],
+          "X": 0.0,
+          "Y": 0.95,
+          "Z": -1.3,
+          "Roll": 0,
+          "Pitch": -5,
+          "Yaw": 90
+        },
+        "cam_rear_left": {
+          "CaptureSettings": [
+            {
+              "ImageType": 0,
+              "Width": 640,
+              "Height": 360,
+              "FOV_Degrees": 90
+            }
+          ],
+          "X": 1.2,
+          "Y": -1.0,
+          "Z": -0.9,
+          "Roll": 0,
+          "Pitch": -5,
+          "Yaw": -150
+        },
+        "cam_rear_right": {
+          "CaptureSettings": [
+            {
+              "ImageType": 0,
+              "Width": 640,
+              "Height": 360,
+              "FOV_Degrees": 90
+            }
+          ],
+          "X": 1.2,
+          "Y": 1.0,
+          "Z": -0.9,
+          "Roll": 0,
+          "Pitch": -5,
+          "Yaw": 150
+        }
+      }
+    }
+  },
+  "SubWindows": [
+    {
+      "WindowID": 0,
+      "CameraName": "front_center",
+      "ImageType": 0,
+      "VehicleName": "Car1",
+      "Visible": true
+    }
+  ],
+  "CameraDefaults": {
+    "CaptureSettings": [
+      {
+        "ImageType": 0,
+        "Width": 640,
+        "Height": 360,
+        "FOV_Degrees": 90
+      }
+    ]
+  }
+}

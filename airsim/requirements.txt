@@ -1,0 +1,7 @@
+# Python 3.9 only (msgpack-rpc-python needs tornado 4.x)
+airsim==1.8.1
+msgpack-rpc-python==0.4.1
+tornado==4.5.3
+numpy==2.0.2
+opencv-python==5.0.0.93
+ultralytics==8.4.210

@@ -1,0 +1,10 @@
+# large / machine-specific
+airsim/envs/
+airsim/.venv/
+airsim/*.pt
+__pycache__/
+*.pyc
+# raw logs and local notes
+airsim/logs/
+CLAUDE.md
+.claude/
